@@ -7,14 +7,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const GEMINI_API_KEY = "AIzaSyCSIj39wqvbzZap93KEBdf7gQK8ZOqu2b8";
+// use environment variable in production
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AIzaSyCSIj39wqvbzZap93KEBdf7gQK8ZOqu2b8";
 
 // health check
 app.get("/", (req, res) => {
   res.json({ status: "Gemini AI server running" });
 });
 
-// AI endpoint
 app.post("/chat", async (req, res) => {
   const { message } = req.body;
 
@@ -46,19 +46,30 @@ app.post("/chat", async (req, res) => {
 
     const data = await response.json();
 
-    const reply =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "No response from AI.";
+    // DEBUG: see full Gemini response in terminal
+    console.log("Gemini Response:", JSON.stringify(data, null, 2));
+
+    let reply = "No response from AI.";
+
+    if (
+      data.candidates &&
+      data.candidates.length > 0 &&
+      data.candidates[0].content &&
+      data.candidates[0].content.parts &&
+      data.candidates[0].content.parts.length > 0
+    ) {
+      reply = data.candidates[0].content.parts[0].text;
+    }
 
     res.json({ reply });
 
   } catch (error) {
-    console.error(error);
+    console.error("Server Error:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
